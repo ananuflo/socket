@@ -1,0 +1,11 @@
+# Ejercicio 2: Lectura correcta y Buffer Basura
+
+## Tabla: Gestión de Lectura en Sockets
+| Problema | Causa | Solución |
+| :--- | :--- | :--- |
+| **Basura al final** | El buffer es mayor que el mensaje enviado (ej. buffer 25, mensaje 4). | Usar `new String(buffer, 0, bytesLeidos)`. |
+| **Mensaje cortado** | El buffer es menor que el mensaje o hay lectura parcial. | Leer en bucle o delimitar mensajes (ej. por líneas). |
+| **Fugas de recursos** | No cerrar los sockets tras su uso. | Implementar `try-with-resources`. |
+
+## Explicación Técnica
+Al usar `is.read(buffer)`, el método devuelve un entero que representa la cantidad de bytes que realmente han llegado por la red. Si ignoramos ese valor y convertimos todo el array a String, incluiremos los bytes vacíos (nulos) que ya estaban en el array, provocando errores visuales o de lógica.

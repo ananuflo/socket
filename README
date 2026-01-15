@@ -1,0 +1,25 @@
+Ejercicio 1: Comunicación VM (servidor) - Host (Cliente)
+
+Este ejercicio demuestra la comunicación TCP mediante sockets entre una máquina virtual y el equipo anfritrión, cambiando la configuración por defecto de "localhost" a una IP de red real.
+
+Configuraciń del escenario:
+
+*Servidor (VM) : Ejecutado en la máquina virtual con LnuxLite.
+*CLiente (Host): Ejecutado en la Máquina principal
+*Puerto: 7777
+*Rama del repositorio: "e1_vm_ip_puerto".
+
+Gestión de red:
+
+Para que el Host pudiera communicarse con la VM, se realizaron los siguientes cambios:
+*Adaptador de Red: Se cambió la configuración de red en VirtualBox de "NAT" a "Adaptador de Puente".
+*Obtención de la IP: Se ejecutó el comando hostname -I y la IP detectada fue "192.168.1.35".
+*Firewall: Se usó el comando sudo iptables -F para limpiar las reglas del cortafuegos de la VM y permitir la conexión entrante.
+
+Cambios en el código:
+
+*Servidor: Se configuró el blind en la dirección "0.0.0.0" para escuchar en todas las interfaces de red.
+*CLiente: Se sustituyó "localhost" por la IP obtenida 
+
+Resultado:
+El servidor recibió correctamente el mensaje "mensaje desde el cliente", identificando al host remoto y cerrando la conexión de forma segura tras procesar el flujo de datos.

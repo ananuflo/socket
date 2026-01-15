@@ -10,6 +10,9 @@ import java.net.ServerSocket;
 public class ServidorSocketStream {
 
     public static void main(String[] args) {
+    	
+    	int puerto = 7777; //Definimos puerto y usamos uno distinto para demostrar el cambio. 
+    	
         try {
             System.out.println("Creando socket servidor");
 
@@ -17,22 +20,29 @@ public class ServidorSocketStream {
 
             System.out.println("Realizando el bind");
 
-            InetSocketAddress addr = new InetSocketAddress("localhost", 5555);
+            InetSocketAddress addr = new InetSocketAddress("0.0.0.0", puerto);
             serverSocket.bind(addr);
+            
+            System.out.println("Servidor esperando conexiones en el puerto: " + puerto);
 
+            //Aceptar las conexiones
             System.out.println("Aceptando conexiones");
 
             Socket newSocket = serverSocket.accept();
-
             System.out.println("Conexión recibida");
+            
+            System.out.println("IP del CLiente remoto: " + newSocket.getInetAddress().getHostAddress());
+            System.out.println("Puerto remoto del cliente: " + newSocket.getPort());
 
             InputStream is = newSocket.getInputStream();
-            OutputStream os = newSocket.getOutputStream();
-
             byte[] mensaje = new byte[25];
-            is.read(mensaje);
+            is.read(mensaje); //Para leer el mensaje del flujo de bytes
+            
+            OutputStream os = newSocket.getOutputStream();
+            String respuesta = "Mensaje recibido correctamente";
+            os.write(respuesta.getBytes()); //Para enviar la respuesta al cliente de la información que ha recibido.
 
-            System.out.println("Mensaje recibido: " + new String(mensaje));
+            
 
             System.out.println("Cerrando el nuevo socket");
             newSocket.close();
@@ -40,7 +50,7 @@ public class ServidorSocketStream {
             System.out.println("Cerrando el socket servidor");
             serverSocket.close();
 
-            System.out.println("Terminado");
+            System.out.println("Servidor finalizado");
 
         } catch (IOException e) {
             e.printStackTrace();

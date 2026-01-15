@@ -8,16 +8,23 @@ import java.net.Socket;
 public class ClienteSocketStream {
 
     public static void main(String[] args) {
+    	
         try {
+        	
+        	//Cambiamos IP y puerto
+        	//Lo he hecho apagando la VM y cambiado la red a adaptador de puente, luego en la terminal pongo hostname -I y ya me sale
+        	String ipVM = "192.168.1.35";
+        	int puerto = 7777; //usamos el mismo puerto de la clase ServidorSocketStream que cambiamos
+        	
             System.out.println("Creando socket cliente");
-
             Socket clientSocket = new Socket();
 
-            System.out.println("Estableciendo la conexión");
+            System.out.println("Estableciendo la conexión en: " + ipVM + ":" + puerto);
 
-            InetSocketAddress addr = new InetSocketAddress("localhost", 5555);
+            InetSocketAddress addr = new InetSocketAddress(ipVM, puerto);
             clientSocket.connect(addr);
 
+            //Los streams para comunicarnos
             InputStream is = clientSocket.getInputStream();
             OutputStream os = clientSocket.getOutputStream();
 

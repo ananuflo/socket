@@ -1,18 +1,32 @@
-# Ejercicio 3: Protocolo Petición/Respuesta
+# Ejercicio 4: Servidor de Comandos Interactivos (Menú)
 
 ## Descripción
-Este ejercicio implementa un mecanismo de comunicación en red empleando Sockets TCP en Java. Se ha diseñado un escenario de ejecución donde un cliente envía una cadena de texto y el servidor responde de manera síncrona.
+En este ejercicio se ha evolucionado el servidor para soportar una comunicación interactiva y persistente. A diferencia de los ejercicios anteriores, el servidor no cierra la conexión tras el primer mensaje, sino que mantiene un bucle de escucha hasta que recibe el comando de finalización.
 
-## Análisis del Escenario de Ejecución
-1. **Estado del Servidor**: El servidor debe iniciar primero, quedando en estado de escucha (`bind` y `accept`) en el puerto 7777.
-2. **Conexión**: El cliente inicia la conexión de forma activa.
-3. **Flujo de datos**:
-   - El Cliente envía: "Hola servidor" + `\n`.
-   - El Servidor recibe, procesa y responde: "OK: Hola servidor" + `\n`.
+## Comandos Implementados
+| Comando | Acción del Servidor | Ejemplo de Respuesta |
+| :--- | :--- | :--- |
+| **DATE** | Devuelve la fecha y hora actual del sistema. | `2026-01-23T10:35:12.456` |
+| **CAL** | Devuelve una representación textual del calendario. | `ENERO 2026: L M X J V S D...` |
+| **FORTUNE** | Devuelve una frase aleatoria de una lista interna. | `La suerte favorece a los audaces` |
+| **HELP** | Lista todos los comandos disponibles. | `Comandos: DATE, CAL, FORTUNE, HELP, EXIT` |
+| **EXIT** | Envía un mensaje de despedida y cierra el socket. | `BYE` |
 
-## Prevención de Bloqueos
-En este ejercicio, el método `readLine()` es un **método bloqueante**. Esto significa que el hilo de ejecución se detiene hasta que recibe datos.
+## Sesión de Ejemplo (Log de Consola)
+A continuación se muestra una interacción real entre el Cliente (Host) y el Servidor (VM):
 
-Para evitar un bloqueo infinito (deadlock):
-- Se utiliza un **delimitador** (`\n`) enviado mediante `out.println()`.
-- Este delimitador indica al receptor que el mensaje ha terminado, permitiendo que `readLine()` se desbloquee y el programa continúe su ejecución.
+1. **Cliente:** `HELP`  
+   **Servidor:** `Comandos: DATE, CAL, FORTUNE, HELP, EXIT` (42 bytes enviados)
+2. **Cliente:** `DATE`  
+   **Servidor:** `2026-01-23T10:40:05.981` (23 bytes enviados)
+3. **Cliente:** `FORTUNE`  
+   **Servidor:** `Java es tu amigo` (15 bytes enviados)
+4. **Cliente:** `COMANDO_INVALIDO`  
+   **Servidor:** `ERROR: Comando no reconocido. Escribe HELP.` (39 bytes enviados)
+5. **Cliente:** `EXIT`  
+   **Servidor:** `BYE` (3 bytes enviados) -> *Conexión cerrada satisfactoriamente.*
+
+## Detalles Técnicos
+- **Persistencia:** Se utiliza un bucle `while(continuar)` dentro de la aceptación del socket para procesar múltiples peticiones en una misma sesión TCP.
+- **Depuración:** El servidor registra en consola cada comando recibido y calcula el tamaño en bytes de cada respuesta enviada mediante `String.getBytes().length`.
+- **Robustez:** Se implementa un bloque `switch` con un caso `default` para gestionar errores de protocolo por parte del cliente.

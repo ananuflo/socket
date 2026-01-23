@@ -1,31 +1,46 @@
 package sockets.tcp;
-import java.io.IOException;
+
 import java.io.*;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.util.Scanner;
 
 public class ClienteSocketStream {
 
     public static void main(String[] args) {
-    	try (Socket clientSocket = new Socket()) {
-            InetSocketAddress addr = new InetSocketAddress("localhost", 5555);
-            clientSocket.connect(addr);
+        String ipVM = "192.168.1.35"; // Tu IP real de la VM
+        int puerto = 7777;
 
+        try (Socket clientSocket = new Socket();
+             Scanner sc = new Scanner(System.in)) {
+
+            System.out.println("Conectando al servidor...");
+            clientSocket.connect(new InetSocketAddress(ipVM, puerto));
+            
             PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
             BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
 
-            // 1. ENVIAR (Petición)
-            String mensaje = "Hola servidor";
-            out.println(mensaje); // println añade el \n automático
-            System.out.println("Mensaje enviado");
+            System.out.println("--- CONECTADO AL SERVIDOR DE COMANDOS ---");
+            System.out.println("Escribe HELP para ver opciones o EXIT para salir");
 
-            // 2. RECIBIR (Respuesta)
-            // El cliente se bloquea aquí hasta que el servidor responda con un \n
-            String respuesta = in.readLine(); 
-            System.out.println("Respuesta del servidor: " + respuesta);
+            boolean activo = true;
+            while (activo) {
+                System.out.print("> ");
+                String comando = sc.nextLine(); // Leemos de tu teclado
+                
+                out.println(comando); // Enviamos al servidor
 
-        } catch (IOException e) { e.printStackTrace(); }
+                String respuesta = in.readLine(); // Leemos la respuesta del servidor
+                System.out.println("SERVIDOR: " + respuesta);
+
+                if (comando.equalsIgnoreCase("EXIT") || respuesta.equals("BYE")) {
+                    activo = false;
+                }
+            }
+            System.out.println("Conexión cerrada.");
+
+        } catch (IOException e) {
+            System.err.println("Error de conexión: " + e.getMessage());
+        }
     }
 }

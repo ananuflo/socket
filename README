@@ -1,0 +1,18 @@
+# Ejercicio 3: Protocolo Petición/Respuesta
+
+## Descripción
+Este ejercicio implementa un mecanismo de comunicación en red empleando Sockets TCP en Java. Se ha diseñado un escenario de ejecución donde un cliente envía una cadena de texto y el servidor responde de manera síncrona.
+
+## Análisis del Escenario de Ejecución
+1. **Estado del Servidor**: El servidor debe iniciar primero, quedando en estado de escucha (`bind` y `accept`) en el puerto 7777.
+2. **Conexión**: El cliente inicia la conexión de forma activa.
+3. **Flujo de datos**:
+   - El Cliente envía: "Hola servidor" + `\n`.
+   - El Servidor recibe, procesa y responde: "OK: Hola servidor" + `\n`.
+
+## Prevención de Bloqueos
+En este ejercicio, el método `readLine()` es un **método bloqueante**. Esto significa que el hilo de ejecución se detiene hasta que recibe datos.
+
+Para evitar un bloqueo infinito (deadlock):
+- Se utiliza un **delimitador** (`\n`) enviado mediante `out.println()`.
+- Este delimitador indica al receptor que el mensaje ha terminado, permitiendo que `readLine()` se desbloquee y el programa continúe su ejecución.

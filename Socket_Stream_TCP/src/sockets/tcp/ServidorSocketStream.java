@@ -2,48 +2,36 @@ package sockets.tcp;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.net.InetSocketAddress;
-import java.net.Socket;
 import java.net.ServerSocket;
+import java.net.Socket;
+import java.io.*;
 
 public class ServidorSocketStream {
 
     public static void main(String[] args) {
-        try {
-            System.out.println("Creando socket servidor");
+    	int puerto = 5555; // Asegúrate de que coincida con el cliente
 
-            ServerSocket serverSocket = new ServerSocket();
+        try (ServerSocket serverSocket = new ServerSocket()) {
+            serverSocket.bind(new InetSocketAddress("0.0.0.0", puerto));
+            System.out.println("Servidor esperando en puerto " + puerto);
 
-            System.out.println("Realizando el bind");
+            while (true) {
+                try (Socket clientSocket = serverSocket.accept();
+                     // Usamos BufferedReader para leer líneas completas (hasta el \n)
+                     BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+                     // Usamos PrintWriter para enviar texto con auto-flush
+                     PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true)) {
 
-            InetSocketAddress addr = new InetSocketAddress("localhost", 5555);
-            serverSocket.bind(addr);
-
-            System.out.println("Aceptando conexiones");
-
-            Socket newSocket = serverSocket.accept();
-
-            System.out.println("Conexión recibida");
-
-            InputStream is = newSocket.getInputStream();
-            OutputStream os = newSocket.getOutputStream();
-
-            byte[] mensaje = new byte[25];
-            is.read(mensaje);
-
-            System.out.println("Mensaje recibido: " + new String(mensaje));
-
-            System.out.println("Cerrando el nuevo socket");
-            newSocket.close();
-
-            System.out.println("Cerrando el socket servidor");
-            serverSocket.close();
-
-            System.out.println("Terminado");
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+                    String mensaje = in.readLine(); // Bloqueo: espera hasta que el cliente mande \n
+                    if (mensaje != null) {
+                        System.out.println("Cliente dice: " + mensaje);
+                        
+                        // ENVIAR RESPUESTA (Aquí se cumple el protocolo)
+                        out.println("OK: " + mensaje); 
+                    }
+                }
+            }
+        } catch (IOException e) { e.printStackTrace(); }
     }
 }

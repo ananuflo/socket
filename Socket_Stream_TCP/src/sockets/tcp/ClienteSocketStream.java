@@ -1,5 +1,6 @@
 package sockets.tcp;
 import java.io.IOException;
+import java.io.*;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
@@ -8,33 +9,23 @@ import java.net.Socket;
 public class ClienteSocketStream {
 
     public static void main(String[] args) {
-        try {
-            System.out.println("Creando socket cliente");
-
-            Socket clientSocket = new Socket();
-
-            System.out.println("Estableciendo la conexión");
-
+    	try (Socket clientSocket = new Socket()) {
             InetSocketAddress addr = new InetSocketAddress("localhost", 5555);
             clientSocket.connect(addr);
 
-            InputStream is = clientSocket.getInputStream();
-            OutputStream os = clientSocket.getOutputStream();
+            PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
+            BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
 
-            System.out.println("Enviando mensaje");
-
-            String mensaje = "mensaje desde el cliente";
-            os.write(mensaje.getBytes());
-
+            // 1. ENVIAR (Petición)
+            String mensaje = "Hola servidor";
+            out.println(mensaje); // println añade el \n automático
             System.out.println("Mensaje enviado");
 
-            System.out.println("Cerrando el socket cliente");
-            clientSocket.close();
+            // 2. RECIBIR (Respuesta)
+            // El cliente se bloquea aquí hasta que el servidor responda con un \n
+            String respuesta = in.readLine(); 
+            System.out.println("Respuesta del servidor: " + respuesta);
 
-            System.out.println("Terminado");
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        } catch (IOException e) { e.printStackTrace(); }
     }
 }

@@ -1,32 +1,28 @@
-# Ejercicio 4: Servidor de Comandos Interactivos (Menú)
+# Ejercicio 5: Servidor Concurrente (Multi-cliente) con Pool de Hilos
 
-## Descripción
-En este ejercicio se ha evolucionado el servidor para soportar una comunicación interactiva y persistente. A diferencia de los ejercicios anteriores, el servidor no cierra la conexión tras el primer mensaje, sino que mantiene un bucle de escucha hasta que recibe el comando de finalización.
+## 1. Concepto del Ejercicio
+El objetivo es transformar el servidor iterativo (que solo atiende a uno cada vez) en un **Servidor Concurrente**. Para ello, se ha implementado un **Pool de Hilos (Fixed Thread Pool)** que permite gestionar múltiples sesiones de clientes de forma simultánea sin bloquear el hilo principal.
 
-## Comandos Implementados
-| Comando | Acción del Servidor | Ejemplo de Respuesta |
+## 2. Diferencias Técnicas: Iterativo vs Concurrente
+| Característica | Servidor Ejercicio 4 (Iterativo) | Servidor Ejercicio 5 (Concurrente) |
 | :--- | :--- | :--- |
-| **DATE** | Devuelve la fecha y hora actual del sistema. | `2026-01-23T10:35:12.456` |
-| **CAL** | Devuelve una representación textual del calendario. | `ENERO 2026: L M X J V S D...` |
-| **FORTUNE** | Devuelve una frase aleatoria de una lista interna. | `La suerte favorece a los audaces` |
-| **HELP** | Lista todos los comandos disponibles. | `Comandos: DATE, CAL, FORTUNE, HELP, EXIT` |
-| **EXIT** | Envía un mensaje de despedida y cierra el socket. | `BYE` |
+| **Atención** | Un cliente debe salir para que entre el siguiente. | Atiende a varios clientes a la vez. |
+| **Hilo Principal** | Se bloquea durante toda la sesión del cliente. | Solo se bloquea en el `accept()`; delega la sesión al pool. |
+| **Escalabilidad** | Muy baja. | Alta, limitada solo por el tamaño del pool. |
 
-## Sesión de Ejemplo (Log de Consola)
-A continuación se muestra una interacción real entre el Cliente (Host) y el Servidor (VM):
+## 3. Implementación del Pool de Hilos
+Se ha utilizado la interfaz `ExecutorService` con el método `Executors.newFixedThreadPool(10)`.
+- **Por qué 10:** Se establece un límite fijo para proteger los recursos de la Máquina Virtual (CPU y RAM).
+- **Funcionamiento:** Si llegan 10 clientes, todos son atendidos. Si llega el cliente número 11, este espera en una cola hasta que un hilo del pool quede libre.
 
-1. **Cliente:** `HELP`  
-   **Servidor:** `Comandos: DATE, CAL, FORTUNE, HELP, EXIT` (42 bytes enviados)
-2. **Cliente:** `DATE`  
-   **Servidor:** `2026-01-23T10:40:05.981` (23 bytes enviados)
-3. **Cliente:** `FORTUNE`  
-   **Servidor:** `Java es tu amigo` (15 bytes enviados)
-4. **Cliente:** `COMANDO_INVALIDO`  
-   **Servidor:** `ERROR: Comando no reconocido. Escribe HELP.` (39 bytes enviados)
-5. **Cliente:** `EXIT`  
-   **Servidor:** `BYE` (3 bytes enviados) -> *Conexión cerrada satisfactoriamente.*
+## 4. Evidencia de Carga (Stress Test)
+Para verificar la concurrencia, se ha desarrollado un **Cliente de Carga** que:
+1. Lanza **10 hilos simultáneos** desde el Host.
+2. Cada hilo abre un socket, envía comandos (`DATE`, `FORTUNE`) y cierra sesión.
+3. **Logs del Servidor:** En la consola de la VM se observa cómo los comandos son procesados por diferentes hilos:
+   - `[pool-1-thread-1] Comando recibido: DATE`
+   - `[pool-1-thread-2] Comando recibido: FORTUNE`
+   - Esto confirma que el servidor no está esperando a que el hilo 1 termine para empezar con el hilo 2.
 
-## Detalles Técnicos
-- **Persistencia:** Se utiliza un bucle `while(continuar)` dentro de la aceptación del socket para procesar múltiples peticiones en una misma sesión TCP.
-- **Depuración:** El servidor registra en consola cada comando recibido y calcula el tamaño en bytes de cada respuesta enviada mediante `String.getBytes().length`.
-- **Robustez:** Se implementa un bloque `switch` con un caso `default` para gestionar errores de protocolo por parte del cliente.
+## 5. Conclusión
+El uso de un Pool de Hilos es la solución profesional para servidores en producción, ya que reutiliza hilos existentes (ahorrando tiempo de creación) y evita la degradación del sistema por exceso de procesos.

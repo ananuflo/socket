@@ -1,53 +1,42 @@
 package com.socket;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
-import java.net.Socket;
-import java.rmi.UnknownHostException;
+import java.io.*;
+import java.net.*;
+import java.util.Scanner;
 
-/**
- * Hello world!
- *
- */
-public class AppCliente 
-{
-	static final int  PORT = 7777;
-	
-    public static void main( String[] args )
-    {
-    	
-        try {
-        	//conectamos con el servidor
-        	Socket socket = new Socket("localhost",PORT);
-        	
-        	//Para enviar datos al server
-        	PrintWriter salida = new PrintWriter(socket.getOutputStream(), true);
-        	
-        	//Para recibir respuestas del servidor
-        	BufferedReader entradaSocket = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-        	//Leer los datos introducidos por consola
-        	BufferedReader entradaConsola = new BufferedReader(new InputStreamReader(System.in));
-        	
-        	System.out.println("<Cliente>Inserte un número: ");
-        	//Leemos de consola y enviamos al server
-        	salida.println(entradaConsola.readLine());
-        	
-        	String datoRec;
-        	while((datoRec = entradaSocket.readLine()) != null){
-        		//Mostrar el dato recibido por consola
-        		System.out.println(datoRec);
-        		// Leer la consola y enviar al server
-        		salida.println(entradaConsola.readLine());
-        	}
-        	
-        	
-        }catch(UnknownHostException ex) {
-        	
+public class AppCliente {
+    public static void main(String[] args) {
+        String host = "127.0.0.1"; 
+        int puerto = 5000;
+
+        try (Socket socket = new Socket(host, puerto);
+             BufferedReader entrada = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+             PrintWriter salida = new PrintWriter(socket.getOutputStream(), true);
+             Scanner teclado = new Scanner(System.in)) {
+
+            System.out.println("Conectado al servidor. Adivina el número (1-10):");
+
+            while (true) {
+                System.out.print("Introduce tu número: ");
+                int num = teclado.nextInt();
+
+                if (num < 1 || num > 10) {
+                    System.out.println("Error: El número debe estar entre 1 y 10. Inténtalo de nuevo.");
+                    continue;
+                }
+
+                salida.println(num);
+                String respuesta = entrada.readLine();
+
+                if (respuesta.equals("ACIERTO")) {
+                    System.out.println("¡FELICIDADES! Has ganado.");
+                    break;
+                } else {
+                    System.out.println("El número secreto es " + respuesta + " que el tuyo.");
+                }
+            }
         } catch (IOException e) {
-			
-			e.printStackTrace();
-		}
+            System.err.println("Error de conexión: " + e.getMessage());
+        }
     }
 }

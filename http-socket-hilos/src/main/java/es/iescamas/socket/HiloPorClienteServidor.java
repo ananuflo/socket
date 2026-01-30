@@ -12,22 +12,19 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 /**
- * Servidor TCP que atiende clientes mediante un hilo por conexión.
- * Sirve HTML básico y un favicon desde src/main/resources/favicon.ico
+ * Servidor HTTP Concurrente Mejorado - Práctica 4
+ * @author Ana
  */
 public class HiloPorClienteServidor implements Runnable {
 
-    /** Puerto donde escucha el servidor. */
     protected int serverPort = 9001;
-
-    /** Socket servidor. */
     protected ServerSocket serversocket = null;
-
-    /** Flag de parada. */
     protected boolean isStopped;
-
-    /** Referencia al hilo que ejecuta run(). */
     protected Thread runningThread = null;
+
+    // --- VARIABLES PARA MEJORA 3 (Estadísticas) ---
+    private static final long startTime = System.currentTimeMillis();
+    private static int peticionesTotales = 0;
 
     public HiloPorClienteServidor(int serverPort) {
         this.serverPort = serverPort;
@@ -38,13 +35,12 @@ public class HiloPorClienteServidor implements Runnable {
         synchronized (this) {
             this.runningThread = Thread.currentThread();
         }
-
         openServerSocket();
 
         while (!isStopped()) {
             try {
                 Socket clientSocket = this.serversocket.accept();
-
+                // Creación del hilo por cliente
                 new Thread(() -> {
                     try {
                         processClientRequest(clientSocket);
@@ -54,148 +50,136 @@ public class HiloPorClienteServidor implements Runnable {
                 }, "client-" + clientSocket.getPort()).start();
 
             } catch (IOException e) {
-                if (isStopped()) {
-                    System.out.println("Server stopped.");
-                    return;
-                }
-                throw new RuntimeException("Error accepting client connection", e);
+                if (isStopped()) return;
+                throw new RuntimeException("Error aceptando conexión", e);
             }
         }
-
-        System.out.println("Server Stopped");
     }
 
-    /**
-     * Procesa la conexión de un cliente.
-     */
     private void processClientRequest(Socket clientSocket) throws IOException {
         try (clientSocket;
              InputStream in = clientSocket.getInputStream();
              BufferedReader br = new BufferedReader(new InputStreamReader(in, StandardCharsets.US_ASCII));
              OutputStream out = clientSocket.getOutputStream()) {
 
-            // 1) Leer la primera línea: "GET /ruta HTTP/1.1"
             String requestLine = br.readLine();
             if (requestLine == null || requestLine.isBlank()) return;
 
+            // Extraer el path de la petición
             String path = "/";
             if (requestLine.startsWith("GET ")) {
                 int start = 4;
                 int end = requestLine.indexOf(' ', start);
-                if (end > start) 
-                	path = requestLine.substring(start, end);
+                if (end > start) path = requestLine.substring(start, end);
             }
 
-            // 2) Favicon: servir el fichero real desde resources y salir
             if ("/favicon.ico".equals(path)) {
                 serveFavicon(out);
                 return;
             }
 
-            // 3) Datos del cliente
-            String clientIp = clientSocket.getInetAddress().getHostAddress();
-            int clientPort = clientSocket.getPort(); // puerto remoto del cliente
-            String remote = clientSocket.getRemoteSocketAddress().toString(); // /IP:PUERTO
+            // --- LÓGICA DE LAS MEJORAS ---
+            
+            // Incremento global de peticiones (Mejora 3)
+            synchronized(this) { peticionesTotales++; }
+            long uptimeSegundos = (System.currentTimeMillis() - startTime) / 1000;
 
-            long time = System.currentTimeMillis();
-            String fecha = new SimpleDateFormat("dd/MM/yy HH:mm:ss").format(new Date(time));
-
-            String saludo = "Bienvenido al Servidor Concurrente";
+            String saludo = "";
             String contenidoExtra = "";
-            
-            if(path.equals("/")) {
-            	saludo = "Página de inicio"; 
-            	
-            	contenidoExtra = "<ul>"
-                        + "<li><a href='/nombre/Ana'>Saludar a Ana</a></li>"
-                        + "<li><a href='/nombre/Pepe'>Saludar a Pepe</a></li>"
-                        + "<li><a href='/nombre/TuNombre'>Prueba personalizada</a></li>"
-                        + "</ul>"; 
-            }else if(path.startsWith("/nombre")){
-            	saludo = "👋 Hola " + path.substring(8);
-                contenidoExtra = "<p><a href='/'>Ir al Inicio</a></p>";
-            	
+            String status = "200 OK";
+
+            // Enrutamiento (Mejora 2 y Mejora 1)
+            if (path.equals("/")) {
+                saludo = "🏠 Página de Inicio";
+                contenidoExtra = "<h3>Menú de Navegación:</h3>"
+                               + "<ul>"
+                               + "<li><a href='/nombre/Ana'>Saludar a Ana (Mi nombre)</a></li>"
+                               + "<li><a href='/nombre/Invitado'>Probar otro nombre</a></li>"
+                               + "<li><a href='/ruta-falsa'>Probar Error 404</a></li>"
+                               + "</ul>";
+            } else if (path.startsWith("/nombre/")) {
+                // Mejora 1: Saludo dinámico
+                String nombreExtraido = path.substring(8);
+                saludo = "👋 Hola, " + nombreExtraido;
+                contenidoExtra = "<p><a href='/'>⬅ Volver al inicio</a></p>";
+            } else {
+                // Gestión de rutas no encontradas
+                saludo = "⚠️ Error 404: No encontrado";
+                status = "404 Not Found";
+                contenidoExtra = "<p>La ruta <b>" + path + "</b> no existe.</p>"
+                               + "<p><a href='/'>⬅ Volver al inicio</a></p>";
             }
-            
-            
+
+            // Datos del cliente e hilos
+            String clientIp = clientSocket.getInetAddress().getHostAddress();
+            String fecha = new SimpleDateFormat("dd/MM/yy HH:mm:ss").format(new Date());
+
+            // Construcción del HTML Final
             String body = "<html>"
-                    + "<head><title>Práctica 4 - Inicio</title></head>"
-                    + "<body style='background-color: coral; font-family: sans-serif; padding: 20px;'>"
-                    + "<h1>" + saludo + "</h1>"
+                    + "<head><title>Servidor de Ana - PSP</title></head>"
+                    + "<body style='background-color: coral; font-family: sans-serif; padding: 30px;'>"
+                    + "<h1 style='color: white; text-shadow: 2px 2px 4px #000;'>" + saludo + "</h1>"
                     + "<hr>"
-                    + contenidoExtra // <--- Aquí se pintan los enlaces o el botón de volver
-                    + "<p><b>Fecha actual:</b> " + fecha + "</p>"
-                    + "<p><b>Hilo que te atiende:</b> " + Thread.currentThread().getName() + "</p>"
+                    + contenidoExtra
+                    + "<div style='background: rgba(255,255,255,0.3); padding: 15px; border-radius: 10px; margin-top: 20px;'>"
+                    + "<h3>🔍 Información Técnica:</h3>"
+                    + "<p><b>Hilo actual:</b> " + Thread.currentThread().getName() + "</p>"
+                    + "<p><b>Tu IP:</b> " + clientIp + "</p>"
+                    + "<p><b>Fecha servidor:</b> " + fecha + "</p>"
+                    + "<p>📊 <b>Estadísticas:</b> Visitas: " + peticionesTotales + " | Activo: " + uptimeSegundos + "s</p>"
+                    + "</div>"
                     + "</body></html>";
 
             byte[] bodyBytes = body.getBytes(StandardCharsets.UTF_8);
 
-            String headers =
-                    "HTTP/1.1 200 OK\r\n" +
-                    "Content-Type: text/html; charset=UTF-8\r\n" +
-                    "Content-Length: " + bodyBytes.length + "\r\n" +
-                    "Connection: close\r\n" +
-                    "\r\n";
+            // Headers con status dinámico
+            String headers = "HTTP/1.1 " + status + "\r\n" +
+                             "Content-Type: text/html; charset=UTF-8\r\n" +
+                             "Content-Length: " + bodyBytes.length + "\r\n" +
+                             "Connection: close\r\n\r\n";
 
             out.write(headers.getBytes(StandardCharsets.US_ASCII));
             out.write(bodyBytes);
             out.flush();
-
-            // Log: ignorar favicon (ya se devuelve arriba) y registrar petición normal
-            System.out.println("[" + Thread.currentThread().getName() + "] " + requestLine);
-            System.out.println("[" + Thread.currentThread().getName() + "] Cliente: " + remote);
-            System.out.println("[" + Thread.currentThread().getName() + "] Petición procesada: " + fecha);
+            
+            System.out.println("[" + Thread.currentThread().getName() + "] Atendida petición: " + path);
         }
     }
 
-    /**
-     * Sirve el favicon real desde el classpath: src/main/resources/favicon.ico
-     */
+    // --- MÉTODOS AUXILIARES ---
+
     private void serveFavicon(OutputStream out) throws IOException {
         try (InputStream iconStream = HiloPorClienteServidor.class.getResourceAsStream("/favicon.ico")) {
-
             if (iconStream == null) {
-                out.write(("HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\n")
-                        .getBytes(StandardCharsets.US_ASCII));
-                out.flush();
+                out.write("HTTP/1.1 404 Not Found\r\n\r\n".getBytes());
                 return;
             }
-
             byte[] iconBytes = iconStream.readAllBytes();
-
-            String headers =
-                    "HTTP/1.1 200 OK\r\n" +
-                    "Content-Type: image/x-icon\r\n" +
-                    "Content-Length: " + iconBytes.length + "\r\n" +
-                    "Connection: close\r\n" +
-                    "\r\n";
-
-            out.write(headers.getBytes(StandardCharsets.US_ASCII));
+            String headers = "HTTP/1.1 200 OK\r\nContent-Type: image/x-icon\r\nContent-Length: " + iconBytes.length + "\r\n\r\n";
+            out.write(headers.getBytes());
             out.write(iconBytes);
             out.flush();
         }
     }
 
     private synchronized boolean isStopped() {
-        return isStopped;
+        return this.isStopped;
     }
-
+    
     private void openServerSocket() {
         try {
             this.serversocket = new ServerSocket(this.serverPort);
         } catch (IOException ex) {
-            throw new RuntimeException("Cannot open port " + serverPort, ex);
+            throw new RuntimeException("No se puede abrir el puerto " + serverPort, ex);
         }
     }
 
     public synchronized void stop() {
         this.isStopped = true;
         try {
-            if (this.serversocket != null) {
-                this.serversocket.close();
-            }
+            if (this.serversocket != null) this.serversocket.close();
         } catch (IOException e) {
-            System.err.println(e);
+            e.printStackTrace();
         }
     }
 }

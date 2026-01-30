@@ -100,24 +100,32 @@ public class HiloPorClienteServidor implements Runnable {
             long time = System.currentTimeMillis();
             String fecha = new SimpleDateFormat("dd/MM/yy HH:mm:ss").format(new Date(time));
 
-            String saludo = "Bienvenido al Servidor";
-            if(path.startsWith("/nombre/")) {
-            	//Aqui voy a extraer el nombre
-            	saludo = "Hola " + path.substring(8); 
+            String saludo = "Bienvenido al Servidor Concurrente";
+            String contenidoExtra = "";
+            
+            if(path.equals("/")) {
+            	saludo = "Página de inicio"; 
+            	
+            	contenidoExtra = "<ul>"
+                        + "<li><a href='/nombre/Ana'>Saludar a Ana</a></li>"
+                        + "<li><a href='/nombre/Pepe'>Saludar a Pepe</a></li>"
+                        + "<li><a href='/nombre/TuNombre'>Prueba personalizada</a></li>"
+                        + "</ul>"; 
+            }else if(path.startsWith("/nombre")){
+            	saludo = "👋 Hola " + path.substring(8);
+                contenidoExtra = "<p><a href='/'>Ir al Inicio</a></p>";
+            	
             }
             
             
             String body = "<html>"
-                    + "<head>"
-                    + "<link rel='icon' href='/favicon.ico'>"
-                    + "<title>Práctica 4 - Concurrencia</title>"
-                    + "</head>"
-                    + "<body style='background-color: coral; font-family: sans-serif;'>"
-                    + "<h1 style='color:blue;'>" + saludo + "</h1>" //
+                    + "<head><title>Práctica 4 - Inicio</title></head>"
+                    + "<body style='background-color: coral; font-family: sans-serif; padding: 20px;'>"
+                    + "<h1>" + saludo + "</h1>"
                     + "<hr>"
-                    + "<p><b>Path:</b> " + path + "</p>"
-                    + "<p><b>Hilo:</b> " + Thread.currentThread().getName() + "</p>"
-                    + "<p><b>IP Cliente:</b> " + clientIp + "</p>"
+                    + contenidoExtra // <--- Aquí se pintan los enlaces o el botón de volver
+                    + "<p><b>Fecha actual:</b> " + fecha + "</p>"
+                    + "<p><b>Hilo que te atiende:</b> " + Thread.currentThread().getName() + "</p>"
                     + "</body></html>";
 
             byte[] bodyBytes = body.getBytes(StandardCharsets.UTF_8);

@@ -12,8 +12,17 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 /**
- * Servidor HTTP Concurrente Mejorado - Práctica 4
+ * Servidor HTTP Concurrente Mejorado - Práctica 5
+ * <p>
+ * Este servidor gestiona peticiones en hilos independientes y permite saludar a usuarios mediante
+ * rutas dinámicas.
+ * </p>
+ * <pre>
+ * Ejemplo de uso: http://localhost:9090/nombre/Ana
+ * </pre>
  * @author Ana
+ * @version 1.0
+ * @since 2026-01-30
  */
 public class HiloPorClienteServidor implements Runnable {
 
@@ -22,7 +31,7 @@ public class HiloPorClienteServidor implements Runnable {
     protected boolean isStopped;
     protected Thread runningThread = null;
 
-    // --- VARIABLES PARA MEJORA 3 (Estadísticas) ---
+    //Variables que he creado para la mejora 3 que se muestre en web
     private static final long startTime = System.currentTimeMillis();
     private static int peticionesTotales = 0;
 
@@ -56,6 +65,13 @@ public class HiloPorClienteServidor implements Runnable {
         }
     }
 
+    /**
+     * Procesa la petición HTTP del cliente, analizando el path y generando la respuesta.
+     * @param clientSocket El socket de conexión con el cliente
+     * @throws IOException
+     * @apiNote: Rutas soportadas: / (inicio), /nombre/{nombre} (saludo) y rutas desconocidas (404).
+     * Ejemplo: /nombre/Ana devuelve "Hola Ana".
+     */
     private void processClientRequest(Socket clientSocket) throws IOException {
         try (clientSocket;
              InputStream in = clientSocket.getInputStream();
@@ -65,7 +81,7 @@ public class HiloPorClienteServidor implements Runnable {
             String requestLine = br.readLine();
             if (requestLine == null || requestLine.isBlank()) return;
 
-            // Extraer el path de la petición
+          
             String path = "/";
             if (requestLine.startsWith("GET ")) {
                 int start = 4;
@@ -78,9 +94,9 @@ public class HiloPorClienteServidor implements Runnable {
                 return;
             }
 
-            // --- LÓGICA DE LAS MEJORAS ---
             
-            // Incremento global de peticiones (Mejora 3)
+            
+            
             synchronized(this) { peticionesTotales++; }
             long uptimeSegundos = (System.currentTimeMillis() - startTime) / 1000;
 
@@ -146,7 +162,7 @@ public class HiloPorClienteServidor implements Runnable {
         }
     }
 
-    // --- MÉTODOS AUXILIARES ---
+   
 
     private void serveFavicon(OutputStream out) throws IOException {
         try (InputStream iconStream = HiloPorClienteServidor.class.getResourceAsStream("/favicon.ico")) {
@@ -162,6 +178,10 @@ public class HiloPorClienteServidor implements Runnable {
         }
     }
 
+    /**
+     * Indica si el servidor ha recibido la orden de detenerse
+     * @return true si el servidor está detenido; false si sigue activo
+     */
     private synchronized boolean isStopped() {
         return this.isStopped;
     }
